@@ -38,72 +38,121 @@ LINK_FILENAME = "links_found.txt"
 
 
 # folder = "dossier"
-def write_to_json(grouped_data):
-    final_data = defaultdict(lambda: defaultdict(list))
+# def write_to_json(grouped_data):
+#     final_data = defaultdict(lambda: defaultdict(list))
 
  
-    for dir_name, contents in grouped_data.items():
-        for content in contents:
-            source = content['source']
-            text = content['text']
-            final_data[dir_name][source].append(text)
+#     for dir_name, contents in grouped_data.items():
+#         for content in contents:
+#             source = content['source']
+#             text = content['text']
+#             final_data[dir_name][source].append(text)
 
+#     final_output = []
+#     for dir_name, sources in final_data.items():
+#         dir_entry = {
+#             dir_name: []
+#         }
+#         for source, texts in sources.items():
+#             dir_entry[dir_name].append({
+#                 "url": source,
+#                 "content": "\n".join(texts)  
+#             })
+#         final_output.append(dir_entry)
+
+#     try:
+
+#         # if os.path.exists("data.json"):
+#         #     with open("data.json", "r", encoding="utf-8") as file:
+#         #         existing_data = json.load(file)
+#         # else:
+#         #     existing_data = []
+#         if os.path.exists("data.json") and os.path.getsize("data.json") > 0:
+#             try:
+#                 with open("data.json", "r", encoding="utf-8") as file:
+#                     existing_data = json.load(file)
+#             except json.JSONDecodeError:
+#                 print("⚠️ data.json est vide ou invalide, réinitialisation")
+#                 existing_data = []
+#         else:
+#             existing_data = []
+
+
+#         existing_data_dict = {list(entry.keys())[0]: entry for entry in existing_data}
+
+#         for new_entry in final_output:
+#             new_key = list(new_entry.keys())[0]
+#             if new_key in existing_data_dict:
+
+#                 existing_sources = {item["url"]: item for item in existing_data_dict[new_key][new_key]}
+#                 for item in new_entry[new_key]:
+#                     if item["url"] in existing_sources:
+
+#                         existing_sources[item["url"]]["content"] = item["content"]
+#                     else:
+
+#                         existing_data_dict[new_key][new_key].append(item)
+#             else:
+
+#                 existing_data_dict[new_key] = new_entry
+
+
+#         updated_data = list(existing_data_dict.values())
+
+#         with open("data.json", "w", encoding="utf-8") as file:
+#             json.dump(updated_data, file, indent=4, ensure_ascii=False)
+        
+#     except Exception as e:
+#         print(f"Error while writing to file: {e}")
+
+# ----------------------------------
+def write_to_json(grouped_data, json_path="data.json"):
+    """
+    Écrit les données regroupées dans un fichier JSON de manière sûre.
+    Chaque entrée est sous la forme : {"category": "<nom>", "pages": [{"url": "...", "content": "..."}]}
+    """
     final_output = []
-    for dir_name, sources in final_data.items():
-        dir_entry = {
-            dir_name: []
-        }
-        for source, texts in sources.items():
-            dir_entry[dir_name].append({
-                "url": source,
-                "content": "\n".join(texts)  
+
+    for category, contents in grouped_data.items():
+        pages = []
+        for content in contents:
+            pages.append({
+                "url": content.get("source", "Unknown source"),
+                "content": content.get("text", "")
             })
-        final_output.append(dir_entry)
+        final_output.append({
+            "category": category,
+            "pages": pages
+        })
 
-    try:
-
-        # if os.path.exists("data.json"):
-        #     with open("data.json", "r", encoding="utf-8") as file:
-        #         existing_data = json.load(file)
-        # else:
-        #     existing_data = []
-        if os.path.exists("data.json") and os.path.getsize("data.json") > 0:
-            try:
-                with open("data.json", "r", encoding="utf-8") as file:
-                    existing_data = json.load(file)
-            except json.JSONDecodeError:
-                print("⚠️ data.json est vide ou invalide, réinitialisation")
-                existing_data = []
-        else:
+    # Charger les anciennes données si possible
+    existing_data = []
+    if os.path.exists(json_path) and os.path.getsize(json_path) > 0:
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                existing_data = json.load(f)
+        except json.JSONDecodeError:
+            print("⚠️ data.json est vide ou invalide, réinitialisation")
             existing_data = []
 
+    # Fusionner les nouvelles données sans dupliquer les URLs
+    existing_dict = {entry["category"]: entry for entry in existing_data}
+    for entry in final_output:
+        cat = entry["category"]
+        if cat in existing_dict:
+            existing_urls = {page["url"]: page for page in existing_dict[cat]["pages"]}
+            for page in entry["pages"]:
+                existing_urls[page["url"]] = page  # Remplace ou ajoute
+            existing_dict[cat]["pages"] = list(existing_urls.values())
+        else:
+            existing_dict[cat] = entry
 
-        existing_data_dict = {list(entry.keys())[0]: entry for entry in existing_data}
+    # Écrire le JSON final
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(list(existing_dict.values()), f, indent=2, ensure_ascii=False)
+    print(f"✅ Data written to {json_path}")
 
-        for new_entry in final_output:
-            new_key = list(new_entry.keys())[0]
-            if new_key in existing_data_dict:
-
-                existing_sources = {item["url"]: item for item in existing_data_dict[new_key][new_key]}
-                for item in new_entry[new_key]:
-                    if item["url"] in existing_sources:
-
-                        existing_sources[item["url"]]["content"] = item["content"]
-                    else:
-
-                        existing_data_dict[new_key][new_key].append(item)
-            else:
-
-                existing_data_dict[new_key] = new_entry
-
-
-        updated_data = list(existing_data_dict.values())
-
-        with open("data.json", "w", encoding="utf-8") as file:
-            json.dump(updated_data, file, indent=4, ensure_ascii=False)
-        
-    except Exception as e:
-        print(f"Error while writing to file: {e}")
+# --------------------------------
 
 def visit_per_projects(folder):
     for root, dirs, files in os.walk(folder):
@@ -151,6 +200,8 @@ class AlanAllmanScraper:
         self.scraped_data = {}
         self.visited_urls: Set[str] = set()
         self.domain = urlparse(base_url).netloc
+        self.assigned_links: Set[str] = set()
+
     
     def fetch_page(self, url: str) -> Optional[BeautifulSoup]:
         """Fetch a webpage and return BeautifulSoup object"""
@@ -237,11 +288,18 @@ class AlanAllmanScraper:
         links = self.extract_links(soup, normalized_url)
 
         # Ensure uniqueness (remove duplicates)
-        unique_links = list(set(links))
+        # unique_links = list(set(links))
 
-        page_data['links_found'] = unique_links[:50]  # Limit to 50 links per page
-        page_data['links_count'] = len(unique_links)
+        # page_data['links_found'] = unique_links[:50]  # Limit to 50 links per page
+        # page_data['links_count'] = len(unique_links)
         
+        filtered_links = [link for link in links if link not in self.assigned_links]
+        unique_links = list(set(filtered_links))
+        # Assign them to this page
+        page_data['links_found'] = unique_links[:50]
+        page_data['links_count'] = len(unique_links)
+
+        self.assigned_links.update(unique_links)
         
         # Store page data with a unique key
         page_key = normalized_url.replace(self.base_url, '').replace('/', '_') or 'homepage'

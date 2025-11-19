@@ -19,22 +19,18 @@ WORKDIR /app
 # Copy requirements and install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-# RUN python -m nltk.downloader punkt averaged_perceptron_tagger
 
-# Copy app files
-COPY extraction.py .
-COPY aaa ./aaa
-# COPY data.json .
+# Copy project
+COPY . .
 
-# Cron job every 30 min for testing
-RUN echo "0 3 * * * root cd /app && /usr/local/bin/python /app/extraction.py >> /var/log/extraction.log 2>&1" \
-    > /etc/cron.d/extraction-cron \
-    && chmod 0644 /etc/cron.d/extraction-cron \
-    && crontab /etc/cron.d/extraction-cron \
-    && touch /var/log/extraction.log
+# Create weekly cron job: Friday at 00:00
+RUN echo "0 0 * * 5 python3 /app/main.py >> /var/log/cron.log 2>&1" > /etc/cron.d/weeklyjob \
+    && chmod 0644 /etc/cron.d/weeklyjob \
+    && crontab /etc/cron.d/weeklyjob
 
-# Entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Environment variables for Selenium
+ENV PATH="/usr/lib/chromium/:$PATH"
+ENV CHROME_BIN="/usr/bin/chromium"
 
-CMD ["/entrypoint.sh"]
+# Run main.py at startup, then start cron in foreground
+CMD ["bash", "-c", "python3 /app/main.py && cron -f"]
