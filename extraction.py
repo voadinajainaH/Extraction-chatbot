@@ -106,7 +106,7 @@ LINK_FILENAME = "links_found.txt"
 #         print(f"Error while writing to file: {e}")
 
 # ----------------------------------
-def write_to_json(grouped_data, json_path="data.json"):
+def write_to_json(grouped_data, json_path="data1.json"):
     """
     Écrit les données regroupées dans un fichier JSON de manière sûre.
     Chaque entrée est sous la forme : {"category": "<nom>", "pages": [{"url": "...", "content": "..."}]}
